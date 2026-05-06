@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model jugadores {
+  id              Int               @id @default(autoincrement())
+  nombre          String            @unique @db.VarChar(100)
+  creado_en       DateTime?         @default(now()) @db.Timestamp(6)
+  partidas        partidas[]
+  ranking_semanal ranking_semanal[]
+}
+
+model opciones {
+  id                 Int                  @id @default(autoincrement())
+  pregunta_id        Int
+  texto              String
+  es_correcta        Boolean              @default(false)
+  orden              Int
+  preguntas          preguntas            @relation(fields: [pregunta_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  respuestas_detalle respuestas_detalle[]
+
+  @@index([pregunta_id], map: "idx_opciones_pregunta")
+}
+
+model partidas {
+  id                   Int                  @id @default(autoincrement())
+  jugador_id           Int
+  puntaje_total        Int                  @default(0)
+  respuestas_correctas Int                  @default(0)
+  fecha                DateTime?            @default(now()) @db.Timestamp(6)
+  jugadores            jugadores            @relation(fields: [jugador_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  respuestas_detalle   respuestas_detalle[]
+
+  @@index([fecha], map: "idx_partidas_fecha")
+  @@index([jugador_id], map: "idx_partidas_jugador")
+}
+
+model preguntas {
+  id                 Int                  @id @default(autoincrement())
+  texto              String
+  creado_en          DateTime?            @default(now()) @db.Timestamp(6)
+  opciones           opciones[]
+  respuestas_detalle respuestas_detalle[]
+}
+
+model ranking_semanal {
+  id                Int       @id @default(autoincrement())
+  jugador_id        Int
+  puntaje_total     Int       @default(0)
+  partidas_contadas Int       @default(0)
+  semana_inicio     DateTime  @db.Date
+  semana_fin        DateTime  @db.Date
+  actualizado_en    DateTime? @default(now()) @db.Timestamp(6)
+  jugadores         jugadores @relation(fields: [jugador_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([jugador_id, semana_inicio])
+  @@index([puntaje_total(sort: Desc)], map: "idx_ranking_semanal_puntaje")
+  @@index([semana_inicio], map: "idx_ranking_semanal_semana")
+}
+
+model respuestas_detalle {
+  id                     Int       @id @default(autoincrement())
+  partida_id             Int
+  pregunta_id            Int
+  opcion_seleccionada_id Int
+  tiempo_respuesta_ms    Int
+  puntos_obtenidos       Int       @default(0)
+  es_correcta            Boolean   @default(false)
+  opciones               opciones  @relation(fields: [opcion_seleccionada_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  partidas               partidas  @relation(fields: [partida_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  preguntas              preguntas @relation(fields: [pregunta_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([partida_id, pregunta_id])
+  @@index([partida_id], map: "idx_respuestas_partida")
+}
