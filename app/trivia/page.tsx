@@ -34,8 +34,11 @@ export default function TriviaPage() {
   const [error, setError] = useState('')
   const [tiempoRestante, setTiempoRestante] = useState(15)
   const [nombreJugador, setNombreJugador] = useState('')
-  const [mostrarFeedback, setMostrarFeedback] = useState(false)
-  const [feedbackCorrecta, setFeedbackCorrecta] =
+
+  const [mostrarFeedback, setMostrarFeedback] =
+    useState(false)
+
+  const [respuestaSeleccionada, setRespuestaSeleccionada] =
     useState<Opcion | null>(null)
 
   const router = useRouter()
@@ -80,28 +83,30 @@ export default function TriviaPage() {
     mostrarFeedback,
   ])
 
-  const manejarTiempoAgotado = () => {
-    const correcta =
-      pregunta?.opciones.find((o) => o.es_correcta) || null
+  const siguientePregunta = (
+    puntajeFinal = puntaje
+  ) => {
+    setMostrarFeedback(false)
+    setRespuestaSeleccionada(null)
 
-    setFeedbackCorrecta(correcta)
+    if (preguntaActual + 1 < preguntas.length) {
+      setPreguntaActual(preguntaActual + 1)
+      setTiempoRestante(15)
+    } else {
+      localStorage.setItem(
+        'puntaje_final',
+        puntajeFinal.toString()
+      )
+
+      router.push('/resultados')
+    }
+  }
+
+  const manejarTiempoAgotado = () => {
     setMostrarFeedback(true)
 
     setTimeout(() => {
-      setMostrarFeedback(false)
-      setFeedbackCorrecta(null)
-
-      if (preguntaActual + 1 < preguntas.length) {
-        setPreguntaActual(preguntaActual + 1)
-        setTiempoRestante(15)
-      } else {
-        localStorage.setItem(
-          'puntaje_final',
-          puntaje.toString()
-        )
-
-        router.push('/resultados')
-      }
+      siguientePregunta()
     }, 2000)
   }
 
@@ -121,6 +126,8 @@ export default function TriviaPage() {
   }
 
   const handleRespuesta = (opcion: Opcion) => {
+    setRespuestaSeleccionada(opcion)
+
     let puntosGanados = 0
 
     if (opcion.es_correcta) {
@@ -132,30 +139,13 @@ export default function TriviaPage() {
         puntosGanados = 5
       }
 
-      setPuntaje(puntaje + puntosGanados)
+      setPuntaje((prev) => prev + puntosGanados)
     }
 
-    const correcta =
-      pregunta?.opciones.find((o) => o.es_correcta) || null
-
-    setFeedbackCorrecta(correcta)
     setMostrarFeedback(true)
 
     setTimeout(() => {
-      setMostrarFeedback(false)
-      setFeedbackCorrecta(null)
-
-      if (preguntaActual + 1 < preguntas.length) {
-        setPreguntaActual(preguntaActual + 1)
-        setTiempoRestante(15)
-      } else {
-        localStorage.setItem(
-          'puntaje_final',
-          (puntaje + puntosGanados).toString()
-        )
-
-        router.push('/resultados')
-      }
+      siguientePregunta(puntaje + puntosGanados)
     }, 2000)
   }
 
@@ -262,6 +252,7 @@ export default function TriviaPage() {
 
           {/* TOP INFO */}
           <div className="flex items-center justify-between mb-6">
+
             {/* Jugador */}
             <div>
               <p className="text-gray-400 text-xs uppercase tracking-widest">
@@ -269,7 +260,10 @@ export default function TriviaPage() {
               </p>
 
               <div className="flex items-center gap-2 mt-1">
-                <Brain size={18} className="text-red-400" />
+                <Brain
+                  size={18}
+                  className="text-red-400"
+                />
 
                 <h2 className="text-white font-bold text-lg">
                   {nombreJugador}
@@ -284,7 +278,10 @@ export default function TriviaPage() {
               </p>
 
               <div className="flex items-center justify-end gap-2 mt-1">
-                <Trophy size={18} className="text-yellow-400" />
+                <Trophy
+                  size={18}
+                  className="text-yellow-400"
+                />
 
                 <h2 className="text-white font-black text-3xl">
                   {puntaje}
@@ -377,8 +374,15 @@ export default function TriviaPage() {
                 hover:scale-[1.01]
               `
 
+              // FEEDBACK VISUAL
               if (mostrarFeedback) {
-                if (opcion.es_correcta) {
+
+                // Respuesta correcta elegida
+                if (
+                  respuestaSeleccionada?.id ===
+                    opcion.id &&
+                  opcion.es_correcta
+                ) {
                   buttonClass = `
                     w-full
                     rounded-2xl
@@ -388,7 +392,27 @@ export default function TriviaPage() {
                     p-5
                     text-left
                   `
-                } else {
+                }
+
+                // Respuesta incorrecta elegida
+                else if (
+                  respuestaSeleccionada?.id ===
+                    opcion.id &&
+                  !opcion.es_correcta
+                ) {
+                  buttonClass = `
+                    w-full
+                    rounded-2xl
+                    border
+                    border-red-400/40
+                    bg-red-500/20
+                    p-5
+                    text-left
+                  `
+                }
+
+                // Restantes
+                else {
                   buttonClass = `
                     w-full
                     rounded-2xl
@@ -397,7 +421,7 @@ export default function TriviaPage() {
                     bg-white/5
                     p-5
                     text-left
-                    opacity-60
+                    opacity-50
                   `
                 }
               }
@@ -413,9 +437,10 @@ export default function TriviaPage() {
                   className={buttonClass}
                 >
                   <div className="flex items-center gap-4">
-                    {/* Letra */}
+
+                    {/* Letra/Icono */}
                     <div
-                      className={`
+                      className="
                         min-w-[42px]
                         h-[42px]
                         rounded-xl
@@ -423,20 +448,29 @@ export default function TriviaPage() {
                         items-center
                         justify-center
                         font-black
-
-                        ${
-                          mostrarFeedback &&
-                          opcion.es_correcta
-                            ? 'bg-green-500 text-white'
-                            : 'bg-white/10 text-red-300'
-                        }
-                      `}
+                      "
                     >
-                      {mostrarFeedback &&
-                      opcion.es_correcta ? (
-                        <CheckCircle2 size={20} />
+                      {mostrarFeedback ? (
+                        respuestaSeleccionada?.id ===
+                        opcion.id ? (
+                          opcion.es_correcta ? (
+                            <div className="w-full h-full rounded-xl bg-green-500 flex items-center justify-center text-white">
+                              <CheckCircle2 size={20} />
+                            </div>
+                          ) : (
+                            <div className="w-full h-full rounded-xl bg-red-500 flex items-center justify-center text-white">
+                              <XCircle size={20} />
+                            </div>
+                          )
+                        ) : (
+                          <div className="w-full h-full rounded-xl bg-white/10 flex items-center justify-center text-gray-400">
+                            {letra}
+                          </div>
+                        )
                       ) : (
-                        letra
+                        <div className="w-full h-full rounded-xl bg-white/10 flex items-center justify-center text-red-300">
+                          {letra}
+                        </div>
                       )}
                     </div>
 
@@ -451,26 +485,6 @@ export default function TriviaPage() {
               )
             })}
           </div>
-
-          {/* Feedback */}
-          {mostrarFeedback && (
-            <div className="mt-6 rounded-2xl border border-green-400/30 bg-green-500/10 p-4 flex items-start gap-3">
-              <CheckCircle2
-                className="text-green-400 mt-0.5"
-                size={22}
-              />
-
-              <div>
-                <p className="text-green-300 font-bold">
-                  Respuesta correcta
-                </p>
-
-                <p className="text-white text-sm mt-1">
-                  {feedbackCorrecta?.texto}
-                </p>
-              </div>
-            </div>
-          )}
         </div>
       </section>
     </main>
