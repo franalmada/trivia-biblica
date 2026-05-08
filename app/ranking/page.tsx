@@ -170,7 +170,7 @@ export default function RankingPage() {
             </p>
 
             <p className="text-gray-500 text-xs mt-2">
-              ✨ Solo cuentan tus mejores 10 partidas
+                ✨ Solo cuenta tu mejor partida
             </p>
           </div>
 

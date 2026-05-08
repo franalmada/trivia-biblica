@@ -41,35 +41,37 @@ export async function obtenerRankingSemanal() {
 
     console.log('Partidas encontradas:', partidas.length)
 
-    // Agrupar por jugador y tomar mejores 10 partidas
+    // Agrupar por jugador y obtener la MEJOR partida (no la suma)
     const rankingMap = new Map()
 
     for (const partida of partidas) {
       const jugadorId = partida.jugador_id
       const nombre = partida.jugadores.nombre
+      const puntaje = partida.puntaje_total
       
       if (!rankingMap.has(jugadorId)) {
         rankingMap.set(jugadorId, {
           nombre,
-          puntajes: []
+          mejorPuntaje: puntaje,
+          partidas_jugadas: 1
         })
+      } else {
+        const actual = rankingMap.get(jugadorId)
+        if (puntaje > actual.mejorPuntaje) {
+          actual.mejorPuntaje = puntaje
+        }
+        actual.partidas_jugadas++
       }
-      
-      rankingMap.get(jugadorId).puntajes.push(partida.puntaje_total)
     }
 
-    // Calcular suma de mejores 10 puntajes
-    const ranking = Array.from(rankingMap.entries()).map(([id, data]) => {
-      const mejoresPuntajes = data.puntajes.sort((a: number, b: number) => b - a).slice(0, 10)
-      const total = mejoresPuntajes.reduce((sum: number, p: number) => sum + p, 0)
-      return {
-        jugador_id: id,
-        nombre: data.nombre,
-        puntaje_total: total,
-        partidas_jugadas: data.puntajes.length,
-        mejores_partidas_contadas: Math.min(data.puntajes.length, 10)
-      }
-    })
+    // Construir ranking con la mejor puntuación de cada jugador
+    const ranking = Array.from(rankingMap.entries()).map(([id, data]) => ({
+      jugador_id: id,
+      nombre: data.nombre,
+      puntaje_total: data.mejorPuntaje,
+      partidas_jugadas: data.partidas_jugadas,
+      mejores_partidas_contadas: 1 // Solo cuenta su mejor partida
+    }))
 
     // Ordenar por puntaje total descendente
     ranking.sort((a, b) => b.puntaje_total - a.puntaje_total)

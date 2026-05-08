@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { obtenerPreguntas } from '../actions/preguntas'
 import { useRouter } from 'next/navigation'
 
@@ -26,6 +26,13 @@ interface Pregunta {
   opciones: Opcion[]
 }
 
+interface FloatingParticle {
+  id: number
+  puntos: number
+  x: number
+  y: number
+}
+
 export default function TriviaPage() {
   const [preguntas, setPreguntas] = useState<Pregunta[]>([])
   const [preguntaActual, setPreguntaActual] = useState(0)
@@ -35,13 +42,40 @@ export default function TriviaPage() {
   const [tiempoRestante, setTiempoRestante] = useState(15)
   const [nombreJugador, setNombreJugador] = useState('')
 
-  const [mostrarFeedback, setMostrarFeedback] =
-    useState(false)
+  const [mostrarFeedback, setMostrarFeedback] = useState(false)
 
-  const [respuestaSeleccionada, setRespuestaSeleccionada] =
-    useState<Opcion | null>(null)
+  const [respuestaSeleccionada, setRespuestaSeleccionada] = useState<Opcion | null>(null)
+
+  // NUEVO: Estado para partículas
+  const [particulas, setParticulas] = useState<FloatingParticle[]>([])
+  const nextParticleId = useRef(0)
+
+  // NUEVO: Estado para animación de revelación de pregunta
+  const [revelandoPregunta, setRevelandoPregunta] = useState(true)
+
+  // NUEVO: Efecto para la sacudida del reloj (últimos 3 segundos)
+  const [tiemblaReloj, setTiemblaReloj] = useState(false)
 
   const router = useRouter()
+
+  // NUEVO: Efecto para la sacudida del reloj
+  useEffect(() => {
+    if (tiempoRestante <= 3 && tiempoRestante > 0 && !mostrarFeedback) {
+      setTiemblaReloj(true)
+      const timer = setTimeout(() => setTiemblaReloj(false), 100)
+      return () => clearTimeout(timer)
+    }
+  }, [tiempoRestante, mostrarFeedback])
+
+  // NUEVO: Función para agregar partícula
+  const agregarParticula = (puntos: number, x: number, y: number) => {
+    const id = nextParticleId.current++
+    setParticulas(prev => [...prev, { id, puntos, x, y }])
+    
+    setTimeout(() => {
+      setParticulas(prev => prev.filter(p => p.id !== id))
+    }, 1000)
+  }
 
   useEffect(() => {
     const nombre = localStorage.getItem('jugador_nombre')
@@ -89,9 +123,15 @@ export default function TriviaPage() {
     setMostrarFeedback(false)
     setRespuestaSeleccionada(null)
 
+    // NUEVO: Activar animación de revelación para la siguiente pregunta
+    setRevelandoPregunta(true)
+
     if (preguntaActual + 1 < preguntas.length) {
       setPreguntaActual(preguntaActual + 1)
       setTiempoRestante(15)
+      
+      // Desactivar revelación después de 400ms
+      setTimeout(() => setRevelandoPregunta(false), 400)
     } else {
       localStorage.setItem(
         'puntaje_final',
@@ -118,6 +158,8 @@ export default function TriviaPage() {
     if (resultado.success && resultado.data) {
       setPreguntas(resultado.data as Pregunta[])
       setError('')
+      // NUEVO: Desactivar revelación después de cargar
+      setTimeout(() => setRevelandoPregunta(false), 400)
     } else {
       setError(resultado.error || 'Error al cargar preguntas')
     }
@@ -125,7 +167,7 @@ export default function TriviaPage() {
     setCargando(false)
   }
 
-  const handleRespuesta = (opcion: Opcion) => {
+  const handleRespuesta = (opcion: Opcion, event: React.MouseEvent<HTMLButtonElement>) => {
     setRespuestaSeleccionada(opcion)
 
     let puntosGanados = 0
@@ -140,6 +182,12 @@ export default function TriviaPage() {
       }
 
       setPuntaje((prev) => prev + puntosGanados)
+      
+      // NUEVO: Crear partícula en la posición del click
+      const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+      const x = rect.left + rect.width / 2
+      const y = rect.top
+      agregarParticula(puntosGanados, x, y)
     }
 
     setMostrarFeedback(true)
@@ -246,9 +294,42 @@ export default function TriviaPage() {
       {/* Grid */}
       <div className="absolute inset-0 opacity-10 bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:40px_40px]" />
 
+      {/* NUEVO: Partículas flotantes */}
+      {particulas.map((p) => (
+        <div
+          key={p.id}
+          className="fixed pointer-events-none z-50 text-2xl font-black"
+          style={{
+            left: p.x,
+            top: p.y,
+            transform: 'translateX(-50%)',
+            color: p.puntos === 15 ? '#fbbf24' : p.puntos === 10 ? '#f59e0b' : '#ef4444',
+            textShadow: '0 0 5px rgba(0,0,0,0.5)',
+            animation: 'float-up 1s ease-out forwards',
+          }}
+        >
+          +{p.puntos}
+        </div>
+      ))}
+
       {/* Card */}
       <section className="relative z-10 w-full max-w-md">
-        <div className="backdrop-blur-2xl bg-white/10 border border-white/10 rounded-[32px] p-6 shadow-[0_0_60px_rgba(255,0,0,0.15)]">
+        <div className={`
+          backdrop-blur-2xl 
+          bg-white/10 
+          border 
+          border-white/10 
+          rounded-[32px] 
+          p-6 
+          shadow-[0_0_60px_rgba(255,0,0,0.15)]
+          transition-all 
+          duration-300
+          // NUEVO: Glow rojo intenso cuando quedan ≤5 segundos
+          ${tiempoRestante <= 5 && !mostrarFeedback && tiempoRestante > 0
+            ? 'shadow-[0_0_30px_rgba(239,68,68,0.8)] border-red-500/50'
+            : ''
+          }
+        `}>
 
           {/* TOP INFO */}
           <div className="flex items-center justify-between mb-6">
@@ -298,14 +379,17 @@ export default function TriviaPage() {
                 {preguntas.length}
               </span>
 
+              {/* NUEVO: Reloj con animación de temblor */}
               <span
                 className={`
                   flex items-center gap-1 font-bold text-sm
+                  transition-all
                   ${
                     tiempoRestante <= 5
                       ? 'text-red-400'
                       : 'text-white'
                   }
+                  ${tiemblaReloj ? 'animate-shake' : ''}
                 `}
               >
                 {tiempoRestante <= 5 && (
@@ -343,8 +427,24 @@ export default function TriviaPage() {
             </div>
           </div>
 
-          {/* Pregunta */}
-          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-6 mb-6">
+          {/* NUEVO: Pregunta con animación de revelación */}
+          <div className={`
+            relative 
+            overflow-hidden 
+            rounded-3xl 
+            border 
+            border-white/10 
+            bg-white/5 
+            p-6 
+            mb-6
+            transition-all
+            duration-400
+            ease-out
+            ${revelandoPregunta
+              ? 'opacity-0 scale-95 translate-y-2'
+              : 'opacity-100 scale-100 translate-y-0'
+            }
+          `}>
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 to-orange-500" />
 
             <h1 className="text-2xl font-bold text-white leading-relaxed">
@@ -430,9 +530,9 @@ export default function TriviaPage() {
                 <button
                   key={opcion.id}
                   disabled={mostrarFeedback}
-                  onClick={() =>
+                  onClick={(e) =>
                     !mostrarFeedback &&
-                    handleRespuesta(opcion)
+                    handleRespuesta(opcion, e)
                   }
                   className={buttonClass}
                 >
@@ -487,6 +587,30 @@ export default function TriviaPage() {
           </div>
         </div>
       </section>
+
+      {/* NUEVO: Estilos para las animaciones */}
+      <style jsx>{`
+        @keyframes float-up {
+          0% {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+          }
+          100% {
+            opacity: 0;
+            transform: translateX(-50%) translateY(-60px);
+          }
+        }
+        
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-3px); }
+          75% { transform: translateX(3px); }
+        }
+        
+        .animate-shake {
+          animation: shake 0.15s ease-in-out 0s 2;
+        }
+      `}</style>
     </main>
   )
 }

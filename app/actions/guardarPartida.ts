@@ -6,14 +6,23 @@ const prisma = new PrismaClient()
 
 export async function guardarPartida(nombre: string, puntaje: number) {
   try {
-    // Buscar o crear el jugador
+    // Limpiar nombre: eliminar espacios al inicio/final y múltiples espacios internos
+    const nombreLimpio = nombre.trim().replace(/\s+/g, ' ')
+
+    // Validar que solo tenga letras y espacios
+    const soloLetras = /^[A-Za-záéíóúñÁÉÍÓÚÑüÜ\s]+$/.test(nombreLimpio)
+    if (!soloLetras) {
+      return { success: false, error: 'El nombre solo puede contener letras y espacios' }
+    }
+
+    // Buscar el jugador por nombre exacto (ya limpio)
     let jugador = await prisma.jugadores.findFirst({
-      where: { nombre: nombre }
+      where: { nombre: nombreLimpio }
     })
 
     if (!jugador) {
       jugador = await prisma.jugadores.create({
-        data: { nombre: nombre }
+        data: { nombre: nombreLimpio }
       })
     }
 
@@ -22,7 +31,7 @@ export async function guardarPartida(nombre: string, puntaje: number) {
       data: {
         jugador_id: jugador.id,
         puntaje_total: puntaje,
-        respuestas_correctas: Math.floor(puntaje / 10) // Aproximado
+        respuestas_correctas: Math.floor(puntaje / 10)
       }
     })
 
