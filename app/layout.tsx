@@ -8,6 +8,7 @@ export const metadata: Metadata = {
   description: descripcion,
   icons: {
     icon: '/foto.jpg',
+    apple: '/icon-512.png', 
   },
   openGraph: {
     title: titulo,
