@@ -30,7 +30,7 @@ export default function Home() {
     }
 
     localStorage.setItem('jugador_nombre', nombreLimpio)
-    router.push('/trivia')
+    router.push('/menu')
   }
 
   return (
@@ -164,15 +164,12 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="inline-flex items-center gap-2 bg-red-500/20 border border-red-500/20 px-4 py-1 rounded-full text-red-200 text-sm mb-4">
-                <Brain size={16} />
-                Desafío semanal
-              </div>
+              
 
               <h1 className="text-5xl font-black tracking-tight text-white">
-                Trivia
+                Desafío
                 <span className="block text-red-500">
-                  Bíblica
+                  Bíblico
                 </span>
               </h1>
 
@@ -182,25 +179,25 @@ export default function Home() {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-3 mt-8">
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
-                <Brain className="mx-auto mb-2 text-red-400" size={20} />
-                <p className="text-white font-bold text-lg">10</p>
-                <p className="text-gray-400 text-xs">Preguntas</p>
-              </div>
+           <div className="grid grid-cols-3 gap-3 mt-8">
+  <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+    <Brain className="mx-auto mb-2 text-red-400" size={20} />
+    <p className="text-white font-bold text-lg">2</p>
+    <p className="text-gray-400 text-xs">Modos</p>
+  </div>
 
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
-                <Timer className="mx-auto mb-2 text-orange-400" size={20} />
-                <p className="text-white font-bold text-lg">15s</p>
-                <p className="text-gray-400 text-xs">Por ronda</p>
-              </div>
+  <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+    <Timer className="mx-auto mb-2 text-orange-400" size={20} />
+    <p className="text-white font-bold text-lg">15-20s</p>
+    <p className="text-gray-400 text-xs">Contrarreloj</p>
+  </div>
 
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
-                <Trophy className="mx-auto mb-2 text-yellow-400" size={20} />
-                <p className="text-white font-bold text-lg">TOP</p>
-                <p className="text-gray-400 text-xs">Ranking</p>
-              </div>
-            </div>
+  <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+    <Trophy className="mx-auto mb-2 text-yellow-400" size={20} />
+    <p className="text-white font-bold text-lg">TOP</p>
+    <p className="text-gray-400 text-xs">Ranking</p>
+  </div>
+</div>
 
             {/* Input */}
             <div className="mt-8">
@@ -258,7 +255,7 @@ export default function Home() {
 
               <span className="relative flex items-center justify-center gap-2">
                 <Play size={20} />
-                Comenzar partida
+                Ver modos de juego
               </span>
             </button>
 

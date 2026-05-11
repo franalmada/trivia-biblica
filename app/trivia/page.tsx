@@ -137,11 +137,11 @@ export default function TriviaPage() {
         'puntaje_final',
         puntajeFinal.toString()
       )
+      localStorage.setItem('modo_juego', 'trivia')  // ← Agrega esta línea
 
       router.push('/resultados')
     }
   }
-
   const manejarTiempoAgotado = () => {
     setMostrarFeedback(true)
 

@@ -20,7 +20,7 @@ model opciones {
   pregunta_id        Int
   texto              String
   es_correcta        Boolean              @default(false)
-  orden              Int
+  orden_opcion       Int
   preguntas          preguntas            @relation(fields: [pregunta_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   respuestas_detalle respuestas_detalle[]
 
@@ -33,6 +33,7 @@ model partidas {
   puntaje_total        Int                  @default(0)
   respuestas_correctas Int                  @default(0)
   fecha                DateTime?            @default(now()) @db.Timestamp(6)
+  modo                 String               @default("trivia")
   jugadores            jugadores            @relation(fields: [jugador_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   respuestas_detalle   respuestas_detalle[]
 
@@ -56,11 +57,13 @@ model ranking_semanal {
   semana_inicio     DateTime  @db.Date
   semana_fin        DateTime  @db.Date
   actualizado_en    DateTime? @default(now()) @db.Timestamp(6)
+  modo              String    @default("trivia")  // ← NUEVO: "trivia" o "revuelto"
   jugadores         jugadores @relation(fields: [jugador_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@unique([jugador_id, semana_inicio])
+  @@unique([jugador_id, semana_inicio, modo])  // ← MODIFICADO: incluido modo
   @@index([puntaje_total(sort: Desc)], map: "idx_ranking_semanal_puntaje")
   @@index([semana_inicio], map: "idx_ranking_semanal_semana")
+  @@index([modo], map: "idx_ranking_semanal_modo")  // ← NUEVO: para filtrar rápido
 }
 
 model respuestas_detalle {
@@ -77,4 +80,12 @@ model respuestas_detalle {
 
   @@unique([partida_id, pregunta_id])
   @@index([partida_id], map: "idx_respuestas_partida")
+}
+
+model versiculos {
+  id         Int      @id @default(autoincrement())
+  texto      String   @db.Text
+  referencia String   @db.VarChar(100)
+  activo     Boolean  @default(true)
+  creado_en  DateTime @default(now()) @db.Timestamp(6)
 }
